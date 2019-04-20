@@ -109,7 +109,8 @@ int main()
 		0.5f, 0.5f, 0.0f, 1.0f, 0.0f, // Top-right
 		0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // Bottom-right
 		-0.5f, -0.5f, 1.0f, 1.0f, 1.0f // Bottom-left
-	};
+	};
+
 	// Create a vbo
 	GLuint vbo;
 	glGenBuffers(1, &vbo); // Generate 1 buffer
@@ -146,7 +147,8 @@ int main()
 	glEnableVertexAttribArray(colAttrib);
 	glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+
 	while (!glfwWindowShouldClose(window)){
 		glfwSwapBuffers(window);
 		glfwPollEvents();
