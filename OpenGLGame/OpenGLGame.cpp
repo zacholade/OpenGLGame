@@ -11,8 +11,79 @@
 #include <chrono>
 #include <vector>
 #include <filesystem>
+#include <errno.h>
 
-static std::string readFile(const GLchar *filePath) {
+GLuint readBMPFile(const char* imagepath) {
+
+	FILE* file;
+	errno_t err;
+
+	// Data read from the header of the BMP file
+	unsigned char header[54]; // Each BMP file begins by a 54-bytes header
+	unsigned int dataPos;     // Position in the file where the actual data begins
+	unsigned int width, height;
+	unsigned int imageSize;   // = width*height*3
+	// Actual RGB data
+	unsigned char* data;
+
+	if ((err = fopen_s(&file, imagepath, "rb")) != 0) {
+		// https://stackoverflow.com/questions/28691612/how-to-go-from-fopen-to-fopen-s
+		// File could not be opened. filepoint was set to NULL
+		// error code is returned in err.
+		// error message can be retrieved with strerror(err);
+		std::cout << "Image could not be opened" << std::endl;
+		return 0;
+	}
+
+	if (fread(header, 1, 54, file) != 54) { // If not 54 bytes read : problem
+		std::cout << "Not a correct BMP file" << std::endl;
+		return 0;
+	}
+
+	if (header[0] != 'B' || header[1] != 'M') {
+		std::cout << "Not a correct BMP file" << std::endl;
+		return 0;
+	}
+
+	// Read ints from the byte array
+	dataPos = *(int*) & (header[0x0A]);
+	imageSize = *(int*) & (header[0x22]);
+	width = *(int*) & (header[0x12]);
+	height = *(int*) & (header[0x16]);
+
+	// Some BMP files are misformatted, guess missing information
+	if (imageSize == 0)    imageSize = width * height * 3; // 3 : one byte for each Red, Green and Blue component
+	if (dataPos == 0)      dataPos = 54; // The BMP header is done that way
+
+	// Create a buffer
+	data = new unsigned char[imageSize];
+
+	// Read the actual data from the file into the buffer
+	fread(data, 1, imageSize, file);
+
+	//Everything is in memory now, the file can be closed
+	fclose(file);
+
+	// Create one OpenGL texture
+	GLuint textureID;
+	glGenTextures(1, &textureID);
+
+	// "Bind" the newly created texture : all future texture functions will modify this texture
+	glBindTexture(GL_TEXTURE_2D, textureID);
+
+	// Give the image to OpenGL
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	return textureID;
+}
+
+
+
+
+static std::string readShaderFile(const GLchar *filePath) {
 	std::string content;
 	std::ifstream fileStream(filePath, std::ios::in);
 
@@ -31,13 +102,13 @@ static std::string readFile(const GLchar *filePath) {
 	return content;
 }
 
-static GLuint LoadShader(const char *vertex_path, const char *fragment_path) {
+static GLuint loadShader(const char *vertex_path, const char *fragment_path) {
 	GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
 	GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
 
 	// Read shaders
-	std::string vertShaderStr = readFile(vertex_path);
-	std::string fragShaderStr = readFile(fragment_path);
+	std::string vertShaderStr = readShaderFile(vertex_path);
+	std::string fragShaderStr = readShaderFile(fragment_path);
 	const char* vertShaderSrc = vertShaderStr.c_str();
 	const char* fragShaderSrc = fragShaderStr.c_str();
 
@@ -95,20 +166,24 @@ int main()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-	GLFWwindow* window = glfwCreateWindow(800, 600, "OpenGL", nullptr, nullptr); // glfwGetPrimaryMonitor() as 4th param for fullscreen
+	std::cout << "Running GLFW Version: " << glfwGetVersionString() << std::endl;
+	GLFWwindow* window = glfwCreateWindow(800, 800, "OpenGL", nullptr, nullptr); // glfwGetPrimaryMonitor() as 4th param for fullscreen
 	glfwMakeContextCurrent(window);
 
 	glewExperimental = GL_TRUE;
 	glewInit();
 
+
+	GLuint texture = readBMPFile("Textures\\Dirt.bmp");
 	/*
-	Verticies. (X, Y, R, G, B)
+	Position(XY)   Color(RGB)    Texture(XY)
+	Verticies. (X, Y, R, G, B, X, Y)
 	*/
 	float vertices[] = {
-		-0.5f, 0.5f, 1.0f, 0.0f, 0.0f, // Top-left
-		0.5f, 0.5f, 0.0f, 1.0f, 0.0f, // Top-right
-		0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // Bottom-right
-		-0.5f, -0.5f, 1.0f, 1.0f, 1.0f // Bottom-left
+	-0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top-left
+	0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // Top-right
+	0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // Bottom-right
+	-0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f // Bottom-left
 	};
 
 	// Create a vbo
@@ -129,25 +204,29 @@ int main()
 	GLuint elements[] = {
 		0, 1, 2,
 		2, 3, 0
-	};	/*
+	};
+
+	/*
 	Create a ebo. Page 33
-	*/	GLuint ebo;
+	*/
+	GLuint ebo;
 	glGenBuffers(1, &ebo);
 
-	GLuint shaderProgram = LoadShader("Shaders\\Vertex.shader", "Shaders\\Fragment.shader");
+	GLuint shaderProgram = loadShader("Shaders\\Shader.vert", "Shaders\\Shader.frag");
 	glUseProgram(shaderProgram);
 
 	GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
-	std::cout << "Position Input of vertex shader: " << posAttrib << std::endl;
-
 	glEnableVertexAttribArray(posAttrib);
-	glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), 0); 	
+	glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 7*sizeof(float), 0); 	
 
 	GLint colAttrib = glGetAttribLocation(shaderProgram, "color");
 	glEnableVertexAttribArray(colAttrib);
-	glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+	glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(2 * sizeof(float)));
+
+	GLuint Texture = readBMPFile("Textures\\Dirt.bmp");	GLint texAttrib = glGetAttribLocation(shaderProgram, "texcoord");	glEnableVertexAttribArray(texAttrib);	glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(5 * sizeof(float)));
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
 
 	while (!glfwWindowShouldClose(window)){
 		glfwSwapBuffers(window);
