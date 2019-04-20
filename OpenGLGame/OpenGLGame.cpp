@@ -123,37 +123,18 @@ int main()
 	*/
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao); // Bind the vao to this program. Whenever glVertexAttribPointer is called, and this vao is bound, it will store that in this vao.\
 
 	GLuint elements[] = {
 		0, 1, 2,
 		2, 3, 0
-	};	/*
+	};	/*
 	Create a ebo. Page 33
 	*/	GLuint ebo;
 	glGenBuffers(1, &ebo);
 
 	GLuint shaderProgram = LoadShader("Shaders\\Vertex.shader", "Shaders\\Fragment.shader");
 	glUseProgram(shaderProgram);
-
-	glBindVertexArray(vao); // Bind the vao to this program. Whenever glVertexAttribPointer is called, and this vao is bound, it will store that in this vao.
-
-	/*
-	Discusses glVertexAttribPointer(args):
-
-	The first parameter references the input. The second parameter specifies the
-	number of values for that input, which is the same as the number of components
-	of the vec. The third parameter specifies the type of each component and
-	the fourth parameter specifies whether the input values should be normalized
-	between -1.0 and 1.0 (or 0.0 and 1.0 depending on the format) if they aren’t
-	floating point numbers.
-	The last two parameters are arguably the most important here as they specify
-	how the attribute is laid out in the vertex array. The first number specifies the
-	stride, or how many bytes are between each position attribute in the array. The
-	value 0 means that there is no data in between. This is currently the case as the
-	position of each vertex is immediately followed by the position of the next vertex.
-	The last parameter specifies the offset, or how many bytes from the start of the
-	array the attribute occurs. Since there are no other attributes, this is 0 as well.
-	*/
 
 	GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
 	std::cout << "Position Input of vertex shader: " << posAttrib << std::endl;
