@@ -5,6 +5,11 @@
 // GLFW
 #include <GLFW/glfw3.h>
 
+// glm
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -13,7 +18,9 @@
 #include <filesystem>
 #include <errno.h>
 
+
 GLuint readBMPFile(const char* imagepath) {
+	// http://www.opengl-tutorial.org/beginners-tutorials/tutorial-5-a-textured-cube/
 
 	FILE* file;
 	errno_t err;
@@ -45,11 +52,11 @@ GLuint readBMPFile(const char* imagepath) {
 		return 0;
 	}
 
-	// Read ints from the byte array
-	dataPos = *(int*) & (header[0x0A]);
-	imageSize = *(int*) & (header[0x22]);
-	width = *(int*) & (header[0x12]);
-	height = *(int*) & (header[0x16]);
+	// Read ints from the byte array according to their position in it
+	dataPos = *(int*) & (header[10]);   // 0x0A
+	imageSize = *(int*) & (header[34]); // 0x22
+	width = *(int*) & (header[18]);     // 0x12
+	height = *(int*) & (header[22]);    // 0x16
 
 	// Some BMP files are misformatted, guess missing information
 	if (imageSize == 0)    imageSize = width * height * 3; // 3 : one byte for each Red, Green and Blue component
@@ -81,9 +88,8 @@ GLuint readBMPFile(const char* imagepath) {
 }
 
 
-
-
 static std::string readShaderFile(const GLchar *filePath) {
+	// https://badvertex.com/2012/11/20/how-to-load-a-glsl-shader-in-opengl-using-c.html
 	std::string content;
 	std::ifstream fileStream(filePath, std::ios::in);
 
@@ -101,6 +107,7 @@ static std::string readShaderFile(const GLchar *filePath) {
 	fileStream.close();
 	return content;
 }
+
 
 static GLuint loadShader(const char *vertex_path, const char *fragment_path) {
 	GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
@@ -158,8 +165,7 @@ static GLuint loadShader(const char *vertex_path, const char *fragment_path) {
 }
 
 
-int main()
-{
+int main() {
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
@@ -173,8 +179,6 @@ int main()
 	glewExperimental = GL_TRUE;
 	glewInit();
 
-
-	GLuint texture = readBMPFile("Textures\\Dirt.bmp");
 	/*
 	Position(XY)   Color(RGB)    Texture(XY)
 	Verticies. (X, Y, R, G, B, X, Y)
@@ -223,18 +227,46 @@ int main()
 	glEnableVertexAttribArray(colAttrib);
 	glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(2 * sizeof(float)));
 
-	GLuint Texture = readBMPFile("Textures\\Dirt.bmp");	GLint texAttrib = glGetAttribLocation(shaderProgram, "texcoord");	glEnableVertexAttribArray(texAttrib);	glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(5 * sizeof(float)));
+	GLuint texture = readBMPFile("Textures\\Dirt.bmp");	GLint texAttrib = glGetAttribLocation(shaderProgram, "texcoord");	glEnableVertexAttribArray(texAttrib);	glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(5 * sizeof(float)));
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+
+	GLint uniTrans = glGetUniformLocation(shaderProgram, "trans");
+	float z = 0;
+	float x = 0;
 
 	while (!glfwWindowShouldClose(window)){
 		glfwSwapBuffers(window);
+		glClear(GL_COLOR_BUFFER_BIT);
 		glfwPollEvents();
 		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
 			glfwSetWindowShouldClose(window, GL_TRUE);
 		}
+
+		if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+			z = z - 0.001f;
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+			z = z + 0.001f;
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+			x = x - 0.001f;
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+			x = x + 0.001f;
+		}
+
+		glm::mat4 trans = glm::mat4(1.0f);
+		trans = glm::rotate(trans, z * glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		trans = glm::rotate(trans, x * glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		glUniformMatrix4fv(uniTrans, 1, GL_FALSE, glm::value_ptr(trans));
+
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
 	}
 	glfwTerminate();
 }
