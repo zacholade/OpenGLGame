@@ -1,8 +1,8 @@
 #pragma once
+#include <vector>
 
 #include "Texture.h"
 
-#include <GL/glew.h> // TODO See if this is needed considering it is inside of Texture.h
 
 class Tile {
 private:
@@ -12,10 +12,12 @@ private:
 public:
 	Tile(int xPos, int yPos, Texture texture);
 
+	static const int TILE_SIZE = 8;
+
 	int getX() const;
 	int getY() const;
 
 	std::vector<GLfloat> getTileVertices() const;
-	std::vector<GLuint> getTileElements() const;
+	static std::vector<GLuint> getTileElements();
 };
 

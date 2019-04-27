@@ -1,8 +1,34 @@
 #include "Shader.h"
 
 
-Shader::Shader(const char* vertex_path, const char* fragment_path):
+Shader::Shader() {
+
+}
+
+
+Shader::Shader(const std::string& vertex_path, const std::string& fragment_path):
 	m_program (loadShader(vertex_path, fragment_path)) {
+	glUseProgram(m_program);
+
+	GLuint ebo;
+	glGenBuffers(1, &ebo);
+
+	GLint posAttrib = glGetAttribLocation(m_program, "position");
+	glEnableVertexAttribArray(posAttrib);
+	glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), 0);
+
+	GLint colAttrib = glGetAttribLocation(m_program, "color");
+	glEnableVertexAttribArray(colAttrib);
+	glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(2 * sizeof(float)));
+
+	GLint texAttrib = glGetAttribLocation(m_program, "texcoord");
+	glEnableVertexAttribArray(texAttrib);
+	glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(5 * sizeof(float)));
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Tile::getTileElements()), Tile::getTileElements().data(), GL_STATIC_DRAW);
+
+	GLint uniTrans = glGetUniformLocation(m_program, "trans");
 }
 
 /*
@@ -43,13 +69,13 @@ std::string Shader::readShaderFile(const GLchar* filePath) {
 	return content;
 }
 
-GLuint Shader::loadShader(const char* vertex_path, const char* fragment_path) {
+GLuint Shader::loadShader(const std::string& vertex_path, const std::string& fragment_path) {
 	GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
 	GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
 
 	// Read shaders
-	std::string vertShaderStr = readShaderFile(vertex_path);
-	std::string fragShaderStr = readShaderFile(fragment_path);
+	std::string vertShaderStr = readShaderFile(vertex_path.c_str());
+	std::string fragShaderStr = readShaderFile(fragment_path.c_str());
 	const char* vertShaderSrc = vertShaderStr.c_str();
 	const char* fragShaderSrc = fragShaderStr.c_str();
 

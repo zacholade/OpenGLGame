@@ -1,13 +1,16 @@
 #pragma once
-
 #include <fstream>
-#include <GL/glew.h>
+#include <string>
+#include <iostream>
+
+#include "Tile.h"
 
 
 class Shader {
 public:
-	Shader(const char* vertex_path, const char* fragment_path);
-	GLuint loadShader(const char* vertex_path, const char* fragment_path);
+	Shader();
+	Shader(const std::string& vertex_path, const std::string& fragment_path);
+	GLuint loadShader(const std::string& vertex_path, const std::string& fragment_path);
 
 	void bind();
 	void unbind();

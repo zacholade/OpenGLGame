@@ -1,10 +1,6 @@
-b#include "Texture.h"
+#include "Texture.h"
 
-#include <fstream>
-#include <filesystem>
-#include <errno.h>
-
-bool Texture::loadFromFile(const std::string& filePath) {
+bool Texture::loadFromFile(const char* filePath) {
 	// http://www.opengl-tutorial.org/beginners-tutorials/tutorial-5-a-textured-cube/
 
 	FILE* file;

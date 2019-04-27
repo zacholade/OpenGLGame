@@ -1,15 +1,13 @@
 #pragma once
 
-#include "Tile.h"
-#include "Texture.h"
+//#include "Tile.h"
 
 class World {
 public:
-	void makeNewWorld(int xSize, int ySize);
+	World(int xSize, int ySize);
 
-	Tile getBlockAt(int x, int y) const;
-	static const int TILE_SIZE = 8;
+	//Tile getBlockAt(int x, int y) const;
 
 private:
-	std::vector<std::vector<Tile>> m_worldData;
+	//std::vector<std::vector<Tile>> m_worldData;
 };

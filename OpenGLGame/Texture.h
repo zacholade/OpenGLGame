@@ -1,11 +1,13 @@
 #pragma once
 
-#include <GL/glew.h>
-#include <string>
+#include <iostream>
+#include <fstream>
+#include <errno.h>
+#include "GL/glew.h"
 
 class Texture {
 public:
-	bool loadFromFile(const std::string& filePath);
+	bool loadFromFile(const char* filePath);
 
 	void bind() const;
 	void unbind() const;
